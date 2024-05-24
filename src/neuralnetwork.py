@@ -49,7 +49,12 @@ class NeuralNetwork:
             for j in range(self.hidden_size1):
                 self.hidden_weights2[i][j] += self.learning_rate * hidden_gradients2[i] * hidden_outputs1[j]
 
-        # ... repeat for first hidden layer ...
+        # repeat for first hidden layer
+        hidden_error1 = [sum([self.hidden_weights2[i][j] * hidden_gradients2[i] for i in range(self.hidden_size2)]) for j in range(self.hidden_size1)]
+        hidden_gradients1 = [derivative(output) * error for output, error in zip(hidden_outputs1, hidden_error1)]
+        for i in range(self.hidden_size1):
+            for j in range(self.input_size):
+                self.hidden_weights1[i][j] += self.learning_rate * hidden_gradients1[i] * inputs[j]
 
     def train(self, inputs, target):
         # Forward pass
