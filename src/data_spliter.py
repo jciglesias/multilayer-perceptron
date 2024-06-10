@@ -15,3 +15,14 @@ def split_data(file_path):
 def read_data_as_numpy(file_path):
     data = pd.read_csv(file_path, header=None)
     return data.to_numpy()
+
+if __name__ == '__main__':
+    wrong_path = True
+    while wrong_path:
+        try:
+            file_name = input("Enter the file name from data directory: ")
+            split_data(f"../data/{file_name}")
+            wrong_path = False
+        except Exception as e:
+            print(e)
+            wrong_path = True
