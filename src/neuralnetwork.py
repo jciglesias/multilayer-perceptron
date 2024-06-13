@@ -1,4 +1,5 @@
 from neuron import hidden_neuron, output_neuron, derivative
+import random
 
 class NeuralNetwork:
     def __init__(self, input_size, hidden_size1, hidden_size2, output_size, learning_rate):
@@ -8,9 +9,9 @@ class NeuralNetwork:
         self.output_size = output_size
 
         # Initialize weights
-        self.hidden_weights1 = [[0.5 for _ in range(input_size)] for _ in range(hidden_size1)]
-        self.hidden_weights2 = [[0.5 for _ in range(hidden_size1)] for _ in range(hidden_size2)]
-        self.output_weights = [[0.5 for _ in range(hidden_size2)] for _ in range(output_size)]
+        self.hidden_weights1 = [[random.random() for _ in range(input_size)] for _ in range(hidden_size1)]
+        self.hidden_weights2 = [[random.random() for _ in range(hidden_size1)] for _ in range(hidden_size2)]
+        self.output_weights = [[random.random() for _ in range(hidden_size2)] for _ in range(output_size)]
 
 
         self.learning_rate = learning_rate
