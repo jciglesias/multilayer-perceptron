@@ -24,7 +24,8 @@ class NeuralNetwork:
         hidden_outputs2 = [hidden_neuron(hidden_outputs1, weights) for weights in self.hidden_weights2]
 
         # Calculate output layer outputs
-        return [output_neuron(hidden_outputs2, weights) for weights in self.output_weights]
+        outputs = [output_neuron(hidden_outputs2, weights) for weights in self.output_weights]
+        return hidden_outputs1, hidden_outputs2, outputs
     
     # Calculate output error
     def calculate_output_error(self, target, output):
