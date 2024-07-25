@@ -1,5 +1,4 @@
-import math
-import random
+import math, random, numpy as np
 
 class Neuron:
     def __init__(self, activation):
@@ -19,14 +18,23 @@ class Neuron:
     def __repr__(self):
         return str(self)
 
+def output(x):
+    return x
+
 # hidden layer neuron gelu, output layer neuron softmax
 # GELU activation function
 def gelu(x):
-    return 0.5 * x * (1 + math.erf(x / math.sqrt(2)))
+    try:
+        return 0.5 * x * (1 + math.erf(x / math.sqrt(2)))
+    except OverflowError:
+        return 0    
 
 # softmax activation function
 def softmax(x):
-    return math.exp(x) / sum([math.exp(i) for i in x])
+    try:
+        return np.exp(x) / np.sum(np.exp(x))
+    except Exception:
+        return np.zeros(len(x))
 
 # derivative of the GELU activation function
 def derivative(x):
