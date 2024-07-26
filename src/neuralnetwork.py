@@ -1,5 +1,11 @@
 import neuron as nr
 import pickle, numpy as np
+import matplotlib.pyplot as plt
+
+interpretation = {
+    0: "B",
+    1: "M"
+}
 
 class NeuralNetwork:
     def __init__(self, input_size, hidden_size):
@@ -40,11 +46,27 @@ class NeuralNetwork:
             self.calculate_weights(neuron, error, learning_rate, second_hlayer_output)
 
     def train(self, data, learning_rate, epochs):
-        for _ in range(epochs):
+        losses = []
+        for epoch in range(epochs):
+            total_error = 0
             for i, row in data.iterrows():
                 inputs = row[2:]
                 expected = row.iloc[1] == "M"
                 self.backpropagation(inputs, expected, learning_rate)
+                output = self.forwardpropagation(inputs)
+                if (expected != output):
+                    print(f'Epoch: {epoch} - Expected: {interpretation[expected]} - Output: {interpretation[output]}')
+                total_error += expected - output
+            losses.append(total_error/len(data))
+            # print(f'Epoch {epoch} - Loss: {losses[-1]}')
+        self.plot_losses(epochs, losses)
+    
+    def plot_losses(self, epochs, losses):
+        plt.plot(range(epochs), losses)
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title('Loss vs Epochs')
+        plt.show()
 
     def save(self, filename):
         with open(filename, 'wb') as file:
