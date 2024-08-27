@@ -3,8 +3,8 @@ import pandas as pd
 import pickle
 
 interpretation = {
-    0: "B",
-    1: "M"
+    0: "M",
+    1: "B"
 }
 
 if __name__=="__main__":
@@ -17,4 +17,4 @@ if __name__=="__main__":
     nn:NeuralNetwork = pickle.load(pkl_file)
     for i, row in data.iterrows():
         inputs = row[2:]
-        print(interpretation[nn.forwardpropagation(inputs)], row.iloc[1])
+        print(f"output: {interpretation[nn.forwardpropagation(inputs)]} - expected: {row.iloc[1]}")
