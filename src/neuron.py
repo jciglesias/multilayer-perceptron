@@ -1,9 +1,9 @@
 import math, random, numpy as np
 
 class Neuron:
-    def __init__(self, activation):
+    def __init__(self, activation, input_size=30):
         self.activation = activation
-        self.weights = [random.random() for _ in range(30)]
+        self.weights = [random.random() for _ in range(input_size)]
         self.bias = random.random()
 
     def linear_transformation(self, inputs):

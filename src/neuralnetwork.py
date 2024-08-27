@@ -1,6 +1,7 @@
 import neuron as nr
 import pickle, numpy as np
 import matplotlib.pyplot as plt
+from copy import copy
 
 interpretation = {
     0: "M",
@@ -8,18 +9,25 @@ interpretation = {
 }
 
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, num_layers=2):
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.first_hlayer = [nr.Neuron(nr.gelu) for _ in range(hidden_size)]
-        self.second_hlayer = [nr.Neuron(nr.gelu) for _ in range(hidden_size)]
-        self.output_layer = [nr.Neuron(nr.output) for _ in range(2)]
+        self.num_layers = num_layers
+        self.layers = []
+        self.layers.append([nr.Neuron(nr.gelu) for _ in range(hidden_size)])
+        for _ in range(1, num_layers):
+            self.layers.append([nr.Neuron(nr.gelu, hidden_size) for _ in range(hidden_size)])
+        # self.first_hlayer = [nr.Neuron(nr.gelu) for _ in range(hidden_size)]
+        # self.second_hlayer = [nr.Neuron(nr.gelu, hidden_size) for _ in range(hidden_size)]
+        self.output_layer = [nr.Neuron(nr.output, hidden_size) for _ in range(2)]
 
     def forwardpropagation(self, inputs):
-        first_hlayer_output = [neuron.forward(inputs) for neuron in self.first_hlayer]
-        second_hlayer_output = [neuron.forward(first_hlayer_output) for neuron in self.second_hlayer]
-        raw_output = [neuron.forward(second_hlayer_output) for neuron in self.output_layer]
-        return self.find_max(nr.softmax(raw_output))
+        # first_hlayer_output = [neuron.forward(inputs) for neuron in self.first_hlayer]
+        # second_hlayer_output = [neuron.forward(first_hlayer_output) for neuron in self.second_hlayer]
+        for layer in self.layers:
+            inputs = [neuron.forward(inputs) for neuron in layer]
+        raw_output = [neuron.forward(inputs) for neuron in self.output_layer]
+        return np.argmax(nr.softmax(raw_output))
     
     def __str__(self):
         return f'NeuralNetwork({self.input_size}, {self.hidden_size})'
@@ -28,22 +36,33 @@ class NeuralNetwork:
         return str(self)
 
     def calculate_weights(self, neuron, error, learning_rate, inputs):
-            for j, weight in enumerate(neuron.weights):
-                gradient = nr.derivative(neuron.linear_transformation(inputs)) * error
-                neuron.weights[j] = weight - learning_rate * gradient
+        for j, weight in enumerate(neuron.weights):
+            gradient = nr.derivative(neuron.linear_transformation(inputs)) * error
+            neuron.weights[j] = weight - learning_rate * gradient
+
+    def calculate_output_weights(self, neuron, error, learning_rate, inputs):
+        for j, weight in enumerate(neuron.weights):
+            gradient = nr.softmax(neuron.linear_transformation(inputs)) * error
+            neuron.weights[j] = weight - learning_rate * gradient
 
     def backpropagation(self, inputs, expected, learning_rate):
-        first_hlayer_output = [neuron.forward(inputs) for neuron in self.first_hlayer]
-        second_hlayer_output = [neuron.forward(first_hlayer_output) for neuron in self.second_hlayer]
-        raw_output = [neuron.forward(second_hlayer_output) for neuron in self.output_layer]
-        output = self.find_max(nr.softmax(raw_output))
+        # first_hlayer_output = [neuron.forward(inputs) for neuron in self.first_hlayer]
+        # second_hlayer_output = [neuron.forward(first_hlayer_output) for neuron in self.second_hlayer]
+        outputs = [inputs]
+        for layer in self.layers:
+            outputs.append([neuron.forward(outputs[-1]) for neuron in layer])
+        raw_output = [neuron.forward(outputs[-1]) for neuron in self.output_layer]
+        output = np.argmax(nr.softmax(raw_output))
         error = expected - output
-        for neuron in self.first_hlayer:
-            self.calculate_weights(neuron, error, learning_rate, inputs)
-        for neuron in self.second_hlayer:
-            self.calculate_weights(neuron, error, learning_rate, first_hlayer_output)
+        for i in range(len(self.layers)):
+            for neuron in self.layers[i]:
+                self.calculate_weights(neuron, error, learning_rate, outputs[i])
+        # for neuron in self.first_hlayer:
+        #     self.calculate_weights(neuron, error, learning_rate, inputs)
+        # for neuron in self.second_hlayer:
+        #     self.calculate_weights(neuron, error, learning_rate, first_hlayer_output)
         for neuron in self.output_layer:
-            self.calculate_weights(neuron, error, learning_rate, second_hlayer_output)
+            self.calculate_output_weights(neuron, error, learning_rate, outputs[-1])
 
     def train(self, data, val_data, learning_rate, epochs):
         losses = []
@@ -68,7 +87,7 @@ class NeuralNetwork:
             val_loss, val_accuracy = self.validation(val_data)
             val_losses.append(val_loss)
             val_accuracies.append(val_accuracy)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {losses[-1]}, val_loss: {val_loss}')
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {losses[-1]:.3}, val_loss: {val_loss:.3}, Accuracy: {accuracy[-1]*100:.4}, val_accuracy: {val_accuracy*100:.4}')
         self.plot_metrics(epochs, losses, val_losses, accuracy, val_accuracies)
 
     def validation(self, data):
@@ -113,6 +132,3 @@ class NeuralNetwork:
     def save(self, filename):
         with open(filename, 'wb') as file:
             pickle.dump(self, file)
-
-    def find_max(self, output: np.array):
-        return np.argmax(output)
