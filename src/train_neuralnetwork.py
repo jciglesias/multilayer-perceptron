@@ -9,6 +9,6 @@ if __name__=="__main__":
         print("File not found")
         exit(1)
     nn = NeuralNetwork(30, 20)
-    nn.train(data, val_data, 0.01, 100)
+    nn.train(data, val_data, 0.001, 100)
     print(nn)
     nn.save('model.pkl')
