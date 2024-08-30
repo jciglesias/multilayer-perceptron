@@ -68,7 +68,7 @@ class NeuralNetwork:
             val_loss, val_accuracy = self.validation(val_data)
             val_losses.append(val_loss)
             val_accuracies.append(val_accuracy)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {losses[-1]}, val_loss: {val_loss}')
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {losses[-1]}, val_loss: {val_loss}, Accuracy: {accuracy[-1]*100:.4}, val_accuracy: {val_accuracy*100:.4}')
         self.plot_metrics(epochs, losses, val_losses, accuracy, val_accuracies)
 
     def validation(self, data):
@@ -107,7 +107,7 @@ class NeuralNetwork:
         plt.legend()
 
         plt.tight_layout()
-        plt.savefig('metrics.png')
+        # plt.savefig('metrics.png')
         plt.show()
 
     def save(self, filename):
