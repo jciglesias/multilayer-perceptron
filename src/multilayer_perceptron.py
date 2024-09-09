@@ -20,9 +20,11 @@ if __name__=="__main__":
         exit(1)
     nn:NeuralNetwork = pickle.load(pkl_file)
     e = 0
+    diff = 0
     for i, row in data.iterrows():
         inputs = row[2:]
         e += binary_cross_entropy(nn.forwardpropagation(inputs), row.iloc[1] == "B")
-        print(f"output: {interpretation[nn.forwardpropagation(inputs)]} - expected: {row.iloc[1]}")
+        if (interpretation[nn.forwardpropagation(inputs)] != row.iloc[1]):
+            diff += 1
     e /= len(data)
-    print(f"Binary cross entropy: {e}")
+    print(f"Differences = {diff}/{i}\nBinary cross entropy: {e}")

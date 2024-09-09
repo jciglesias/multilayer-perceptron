@@ -1,31 +1,28 @@
 import neuron as nr
 import pickle, numpy as np
 import matplotlib.pyplot as plt
+from copy import copy
 
 interpretation = {
-    0: "M",
-    1: "B"
+    "M": 0,
+    "B": 1 
 }
 
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, n_hidden_layers=2):
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.first_hlayer = [nr.Neuron(nr.gelu) for _ in range(hidden_size)]
-        self.second_hlayer = [nr.Neuron(nr.gelu) for _ in range(hidden_size)]
+        self.layers = []
+        for i in range(n_hidden_layers):
+            self.layers.append([nr.Neuron(nr.gelu) for _ in range(hidden_size)])
         self.output_layer = [nr.Neuron(nr.output) for _ in range(2)]
 
     def forwardpropagation(self, inputs):
-        first_hlayer_output = [neuron.forward(inputs) for neuron in self.first_hlayer]
-        second_hlayer_output = [neuron.forward(first_hlayer_output) for neuron in self.second_hlayer]
-        raw_output = [neuron.forward(second_hlayer_output) for neuron in self.output_layer]
-        return self.find_max(nr.softmax(raw_output))
-    
-    def __str__(self):
-        return f'NeuralNetwork({self.input_size}, {self.hidden_size})'
-    
-    def __repr__(self):
-        return str(self)
+        output = copy(inputs)
+        for layer in self.layers:
+            output = [neuron.forward(output) for neuron in layer]
+        raw_output = [neuron.forward(output) for neuron in self.output_layer]
+        return np.argmax(nr.softmax(raw_output))
 
     def calculate_weights(self, neuron, error, learning_rate, inputs):
             for j, weight in enumerate(neuron.weights):
@@ -33,17 +30,18 @@ class NeuralNetwork:
                 neuron.weights[j] = weight - learning_rate * gradient
 
     def backpropagation(self, inputs, expected, learning_rate):
-        first_hlayer_output = [neuron.forward(inputs) for neuron in self.first_hlayer]
-        second_hlayer_output = [neuron.forward(first_hlayer_output) for neuron in self.second_hlayer]
-        raw_output = [neuron.forward(second_hlayer_output) for neuron in self.output_layer]
-        output = self.find_max(nr.softmax(raw_output))
+        outputs = []
+        outputs.append(inputs)
+        for layer in self.layers:
+            outputs.append([neuron.forward(outputs[-1]) for neuron in layer])
+        raw_output = [neuron.forward(outputs[-1]) for neuron in self.output_layer]
+        output = np.argmax(nr.softmax(raw_output))
         error = expected - output
-        for neuron in self.first_hlayer:
-            self.calculate_weights(neuron, error, learning_rate, inputs)
-        for neuron in self.second_hlayer:
-            self.calculate_weights(neuron, error, learning_rate, first_hlayer_output)
+        for i in range(len(self.layers)):
+            for neuron in self.layers[i]:
+                self.calculate_weights(neuron, error, learning_rate, outputs[i])
         for neuron in self.output_layer:
-            self.calculate_weights(neuron, error, learning_rate, second_hlayer_output)
+            self.calculate_weights(neuron, error, learning_rate, outputs[-1])
 
     def train(self, data, val_data, learning_rate, epochs):
         losses = []
@@ -56,7 +54,7 @@ class NeuralNetwork:
             correct_predictions = 0
             for i, row in data.iterrows():
                 inputs = row[2:]
-                expected = row.iloc[1] == "B"
+                expected = interpretation.get(row.iloc[1])
                 self.backpropagation(inputs, expected, learning_rate)
                 output = self.forwardpropagation(inputs)
                 if (expected == output):
@@ -107,12 +105,15 @@ class NeuralNetwork:
         plt.legend()
 
         plt.tight_layout()
-        # plt.savefig('metrics.png')
+        plt.savefig('metrics.png')
         plt.show()
 
     def save(self, filename):
         with open(filename, 'wb') as file:
             pickle.dump(self, file)
-
-    def find_max(self, output: np.array):
-        return np.argmax(output)
+    
+    def __str__(self):
+        return f'NeuralNetwork({self.input_size}, {self.hidden_size}, {len(self.layers)})'
+    
+    def __repr__(self):
+        return str(self)
