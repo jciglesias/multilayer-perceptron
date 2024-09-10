@@ -1,6 +1,7 @@
 import neuron as nr
 import pickle, numpy as np
 import matplotlib.pyplot as plt
+import concurrent.futures as cf
 from copy import copy
 
 interpretation = {
@@ -13,9 +14,10 @@ class NeuralNetwork:
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.layers = []
-        for i in range(n_hidden_layers):
-            self.layers.append([nr.Neuron(nr.gelu) for _ in range(hidden_size)])
-        self.output_layer = [nr.Neuron(nr.output) for _ in range(2)]
+        self.layers.append([nr.Neuron(nr.gelu, input_size) for _ in range(hidden_size)])
+        for i in range(1, n_hidden_layers):
+            self.layers.append([nr.Neuron(nr.gelu, hidden_size) for _ in range(hidden_size)])
+        self.output_layer = [nr.Neuron(nr.output, hidden_size) for _ in range(2)]
 
     def forwardpropagation(self, inputs):
         output = copy(inputs)
@@ -37,11 +39,19 @@ class NeuralNetwork:
         raw_output = [neuron.forward(outputs[-1]) for neuron in self.output_layer]
         output = np.argmax(nr.softmax(raw_output))
         error = expected - output
-        for i in range(len(self.layers)):
-            for neuron in self.layers[i]:
-                self.calculate_weights(neuron, error, learning_rate, outputs[i])
-        for neuron in self.output_layer:
-            self.calculate_weights(neuron, error, learning_rate, outputs[-1])
+        with cf.ThreadPoolExecutor() as executor:
+            futures = []
+            for i in range(len(self.layers)):
+                for neuron in self.layers[i]:
+                    futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[i]))
+            for neuron in self.output_layer:
+                futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[-1]))
+            cf.wait(futures)
+        # for i in range(len(self.layers)):
+        #     for neuron in self.layers[i]:
+        #         self.calculate_weights(neuron, error, learning_rate, outputs[i])
+        # for neuron in self.output_layer:
+        #     self.calculate_weights(neuron, error, learning_rate, outputs[-1])
 
     def train(self, data, val_data, learning_rate, epochs):
         losses = []
