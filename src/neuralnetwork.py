@@ -1,7 +1,8 @@
-import neuron as nr
+import src.neuron as nr
 import pickle, numpy as np
 import matplotlib.pyplot as plt
 import concurrent.futures as cf
+from pandas import DataFrame
 from copy import copy
 
 interpretation = {
@@ -31,29 +32,27 @@ class NeuralNetwork:
                 gradient = nr.derivative(neuron.linear_transformation(inputs)) * error
                 neuron.weights[j] = weight - learning_rate * gradient
 
-    def backpropagation(self, inputs, expected, learning_rate):
-        outputs = []
-        outputs.append(inputs)
-        for layer in self.layers:
-            outputs.append([neuron.forward(outputs[-1]) for neuron in layer])
-        raw_output = [neuron.forward(outputs[-1]) for neuron in self.output_layer]
-        output = np.argmax(nr.softmax(raw_output))
-        error = expected - output
-        with cf.ThreadPoolExecutor() as executor:
-            futures = []
-            for i in range(len(self.layers)):
-                for neuron in self.layers[i]:
-                    futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[i]))
-            for neuron in self.output_layer:
-                futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[-1]))
-            cf.wait(futures)
-        # for i in range(len(self.layers)):
-        #     for neuron in self.layers[i]:
-        #         self.calculate_weights(neuron, error, learning_rate, outputs[i])
-        # for neuron in self.output_layer:
-        #     self.calculate_weights(neuron, error, learning_rate, outputs[-1])
+    def backpropagation(self, data: DataFrame, learning_rate):
+        for i, row in data.sample(frac=0.1).iterrows():
+            inputs = row[2:]
+            expected = interpretation.get(row.iloc[1])
+            outputs = []
+            outputs.append(inputs)
+            for layer in self.layers:
+                outputs.append([neuron.forward(outputs[-1]) for neuron in layer])
+            raw_output = [neuron.forward(outputs[-1]) for neuron in self.output_layer]
+            output = np.argmax(nr.softmax(raw_output))
+            error = expected - output
+            with cf.ThreadPoolExecutor() as executor:
+                futures = []
+                for i in range(len(self.layers)):
+                    for neuron in self.layers[i]:
+                        futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[i]))
+                for neuron in self.output_layer:
+                    futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[-1]))
+                cf.wait(futures)
 
-    def train(self, data, val_data, learning_rate, epochs):
+    def train(self, data: DataFrame, val_data: DataFrame, learning_rate: float, epochs: int):
         losses = []
         accuracy = []
         val_losses = []
@@ -65,12 +64,12 @@ class NeuralNetwork:
             for i, row in data.iterrows():
                 inputs = row[2:]
                 expected = interpretation.get(row.iloc[1])
-                self.backpropagation(inputs, expected, learning_rate)
                 output = self.forwardpropagation(inputs)
                 if (expected == output):
                     correct_predictions += 1
                 total_predictions += 1
                 total_error += expected - output
+            self.backpropagation(data, learning_rate)
             losses.append(total_error/len(data))
             accuracy.append(correct_predictions/total_predictions)
             val_loss, val_accuracy = self.validation(val_data)
