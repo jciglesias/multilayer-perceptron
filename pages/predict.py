@@ -1,7 +1,7 @@
 from src.neuralnetwork import NeuralNetwork
 import pandas as pd
 import streamlit as st
-import pickle, math
+import math
 
 interpretation = {
     0: "M",
@@ -18,16 +18,24 @@ def binary_cross_entropy(y, y_hat, epsilon=0.001):
     return -y_hat * math.log(y) - (1 - y_hat) * math.log(1 - y)
 
 if "testDF" in st.session_state:
-    pkl_file = open('model.pkl', 'rb')
-    nn:NeuralNetwork = pickle.load(pkl_file)
+    nn = st.session_state.nn
     e = 0
     diff = 0
-    for i, row in st.session_state.testingDF.iterrows():
+    col1, col2 = st.columns(2)
+    cont1 = col1.container(height=200)
+    cont2 = col2.container(height=200)
+    for i, row in st.session_state.testDF.iterrows():
         inputs = row[2:]
-        e += binary_cross_entropy(nn.forwardpropagation(inputs), row.iloc[1] == "B")
-        if (interpretation[nn.forwardpropagation(inputs)] != row.iloc[1]):
+        output = nn.forwardpropagation(inputs)
+        expected = row.iloc[1] == "B"
+        e += binary_cross_entropy(output, expected)
+        if i % 2:
+            cont1.write(f"Expected: {interpretation[expected]}, got: {interpretation[output]}")
+        else:
+            cont2.write(f"Expected: {interpretation[expected]}, got: {interpretation[output]}")
+        if (interpretation[output] != row.iloc[1]):
             diff += 1
-    e /= len(st.session_state.testingDF)
-    print(f"Differences = {diff}/{i}\nBinary cross entropy: {e}")
+    e /= len(st.session_state.testDF)
+    st.write(f"Differences = {diff}/{i}\nBinary cross entropy: {e}")
 else:
     data_not_found()

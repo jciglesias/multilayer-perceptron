@@ -32,25 +32,22 @@ class NeuralNetwork:
                 gradient = nr.derivative(neuron.linear_transformation(inputs)) * error
                 neuron.weights[j] = weight - learning_rate * gradient
 
-    def backpropagation(self, data: DataFrame, learning_rate):
-        for i, row in data.sample(frac=0.1).iterrows():
-            inputs = row[2:]
-            expected = interpretation.get(row.iloc[1])
-            outputs = []
-            outputs.append(inputs)
-            for layer in self.layers:
-                outputs.append([neuron.forward(outputs[-1]) for neuron in layer])
-            raw_output = [neuron.forward(outputs[-1]) for neuron in self.output_layer]
-            output = np.argmax(nr.softmax(raw_output))
-            error = expected - output
-            with cf.ThreadPoolExecutor() as executor:
-                futures = []
-                for i in range(len(self.layers)):
-                    for neuron in self.layers[i]:
-                        futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[i]))
-                for neuron in self.output_layer:
-                    futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[-1]))
-                cf.wait(futures)
+    def backpropagation(self, inputs, expected, learning_rate):
+        outputs = []
+        outputs.append(inputs)
+        for layer in self.layers:
+            outputs.append([neuron.forward(outputs[-1]) for neuron in layer])
+        raw_output = [neuron.forward(outputs[-1]) for neuron in self.output_layer]
+        output = np.argmax(nr.softmax(raw_output))
+        error = expected - output
+        with cf.ThreadPoolExecutor() as executor:
+            futures = []
+            for i in range(len(self.layers)):
+                for neuron in self.layers[i]:
+                    futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[i]))
+            for neuron in self.output_layer:
+                futures.append(executor.submit(self.calculate_weights, neuron, error, learning_rate, outputs[-1]))
+            cf.wait(futures)
 
     def train(self, data: DataFrame, val_data: DataFrame, learning_rate: float, epochs: int):
         losses = []
@@ -61,21 +58,21 @@ class NeuralNetwork:
             total_error = 0
             total_predictions = 0
             correct_predictions = 0
-            for i, row in data.iterrows():
+            for i, row in data.sample(frac=0.1).iterrows():
                 inputs = row[2:]
                 expected = interpretation.get(row.iloc[1])
+                self.backpropagation(inputs, expected, learning_rate)
                 output = self.forwardpropagation(inputs)
                 if (expected == output):
                     correct_predictions += 1
                 total_predictions += 1
                 total_error += expected - output
-            self.backpropagation(data, learning_rate)
             losses.append(total_error/len(data))
             accuracy.append(correct_predictions/total_predictions)
             val_loss, val_accuracy = self.validation(val_data)
             val_losses.append(val_loss)
             val_accuracies.append(val_accuracy)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {losses[-1]}, val_loss: {val_loss}, Accuracy: {accuracy[-1]*100:.4}, val_accuracy: {val_accuracy*100:.4}')
+            yield f'Epoch {epoch + 1}/{epochs} - Loss: {losses[-1]}, val_loss: {val_loss}, Accuracy: {accuracy[-1]*100:.4}, val_accuracy: {val_accuracy*100:.4}'
         self.plot_metrics(epochs, losses, val_losses, accuracy, val_accuracies)
 
     def validation(self, data):
@@ -94,7 +91,7 @@ class NeuralNetwork:
     
     def plot_metrics(self, epochs, losses, val_losses, accuracies, val_accuracies):
         # Plot Losses
-        plt.figure(figsize=(12, 5))
+        self.fig = plt.figure(figsize=(12, 5))
 
         plt.subplot(1, 2, 1)
         plt.plot(range(epochs), losses, label='Training Loss', color='blue')
@@ -114,8 +111,8 @@ class NeuralNetwork:
         plt.legend()
 
         plt.tight_layout()
-        plt.savefig('metrics.png')
-        plt.show()
+        # plt.savefig('metrics.png')
+        # plt.show()
 
     def save(self, filename):
         with open(filename, 'wb') as file:
