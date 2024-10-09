@@ -5,6 +5,7 @@ class Neuron:
         self.activation = activation
         self.weights = [random.random() for _ in range(input_size)]
         self.bias = random.random()
+        self.diff = None
 
     def linear_transformation(self, inputs):
         return sum([i * w for i, w in zip(inputs, self.weights)]) + self.bias

@@ -2,6 +2,7 @@ import src.neuron as nr
 import pickle, numpy as np
 import matplotlib.pyplot as plt
 import concurrent.futures as cf
+import time
 from pandas import DataFrame
 from copy import copy
 
@@ -28,9 +29,14 @@ class NeuralNetwork:
         return np.argmax(nr.softmax(raw_output))
 
     def calculate_weights(self, neuron, error, learning_rate, inputs):
+        # if (neuron.diff != 0):
+            neuron.diff = 0
             for j, weight in enumerate(neuron.weights):
                 gradient = nr.derivative(neuron.linear_transformation(inputs)) * error
-                neuron.weights[j] = weight - learning_rate * gradient
+                diff = learning_rate * gradient
+                neuron.diff += abs(diff)
+                neuron.weights[j] = weight - diff
+            print(neuron.diff)
 
     def backpropagation(self, inputs, expected, learning_rate):
         outputs = []
@@ -54,11 +60,12 @@ class NeuralNetwork:
         accuracy = []
         val_losses = []
         val_accuracies = []
+        starting_time = time.time()
         for epoch in range(epochs):
             total_error = 0
             total_predictions = 0
             correct_predictions = 0
-            for i, row in data.sample(frac=0.1).iterrows():
+            for i, row in data.sample(frac=0.5).iterrows():
                 inputs = row[2:]
                 expected = interpretation.get(row.iloc[1])
                 self.backpropagation(inputs, expected, learning_rate)
@@ -72,7 +79,16 @@ class NeuralNetwork:
             val_loss, val_accuracy = self.validation(val_data)
             val_losses.append(val_loss)
             val_accuracies.append(val_accuracy)
-            yield f'Epoch {epoch + 1}/{epochs} - Loss: {losses[-1]}, val_loss: {val_loss}, Accuracy: {accuracy[-1]*100:.4}, val_accuracy: {val_accuracy*100:.4}'
+            elapsed_time = (time.time() - starting_time) / 60
+            yield DataFrame({
+                "Epoch": f"{epoch + 1}/{epochs}",
+                "Loss": losses[-1],
+                "Validation loss": val_loss,
+                "Accuracy": accuracy[-1]*100,
+                "Validation accuracy": val_accuracy*100,
+                "Time": f"{elapsed_time:.2f} minutes",
+                "ETA": f"{(elapsed_time * epochs / (epoch + 1)) - elapsed_time:.2f} minutes"
+                },index=[epoch])
         self.plot_metrics(epochs, losses, val_losses, accuracy, val_accuracies)
 
     def validation(self, data):
