@@ -13,6 +13,9 @@ interpretation = {
 
 class NeuralNetwork:
     def __init__(self, input_size, hidden_size, n_hidden_layers=2):
+        self.start_restart(input_size, hidden_size, n_hidden_layers)
+
+    def start_restart(self, input_size, hidden_size, n_hidden_layers):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.layers = []
@@ -29,14 +32,10 @@ class NeuralNetwork:
         return np.argmax(nr.softmax(raw_output))
 
     def calculate_weights(self, neuron, error, learning_rate, inputs):
-        # if (neuron.diff != 0):
-            neuron.diff = 0
             for j, weight in enumerate(neuron.weights):
                 gradient = nr.derivative(neuron.linear_transformation(inputs)) * error
                 diff = learning_rate * gradient
-                neuron.diff += abs(diff)
                 neuron.weights[j] = weight - diff
-            print(neuron.diff)
 
     def backpropagation(self, inputs, expected, learning_rate):
         outputs = []
@@ -65,7 +64,7 @@ class NeuralNetwork:
             total_error = 0
             total_predictions = 0
             correct_predictions = 0
-            for i, row in data.sample(frac=0.5).iterrows():
+            for i, row in data.iterrows():
                 inputs = row[2:]
                 expected = interpretation.get(row.iloc[1])
                 self.backpropagation(inputs, expected, learning_rate)
@@ -89,7 +88,14 @@ class NeuralNetwork:
                 "Time": f"{elapsed_time:.2f} minutes",
                 "ETA": f"{(elapsed_time * epochs / (epoch + 1)) - elapsed_time:.2f} minutes"
                 },index=[epoch])
-        self.plot_metrics(epochs, losses, val_losses, accuracy, val_accuracies)
+            if self.criteria_check(epoch, accuracy[-1], val_accuracy):
+                self.start_restart(self.input_size, self.hidden_size, len(self.layers))
+            if val_accuracy >= 0.9 and accuracy[-1] >= 0.9 and not (epoch+1) % 10:
+                break
+        self.plot_metrics(epoch+1, losses, val_losses, accuracy, val_accuracies)
+    
+    def criteria_check(self, epoch, accuracy, val_accuracy):
+        return epoch > 0 and (not epoch % 20 and (accuracy < 0.9 or val_accuracy < 0.85))
 
     def validation(self, data):
         total_error = 0

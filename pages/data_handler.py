@@ -4,6 +4,12 @@ import streamlit as st
 
 data_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
+@st.dialog("Time to train the model")
+def train_nn():
+    st.write("Please train the model with the new data")
+    if st.button("Train Model"):
+        st.switch_page("pages/train_network.py")
+
 if "data" in st.session_state:
     training_tab, validation_tab, test_tab = st.tabs(["Training Data", "Validation Data", "Test Data"])
     with training_tab:
@@ -27,4 +33,5 @@ if data_file is not None:
         # st.switch_page("multilayer_perceptron.py")
     except Exception as e:
         st.write(f"An error occurred: {e}")
+    train_nn()
 

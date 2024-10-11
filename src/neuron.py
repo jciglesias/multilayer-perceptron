@@ -1,8 +1,10 @@
 import math, random, numpy as np
+import time
 
 class Neuron:
     def __init__(self, activation, input_size=30):
         self.activation = activation
+        random.seed(time.time())
         self.weights = [random.random() for _ in range(input_size)]
         self.bias = random.random()
         self.diff = None

@@ -13,11 +13,17 @@ def data_not_found():
     if st.button("Upload Data"):
         st.switch_page("pages/data_handler.py")
 
+@st.dialog("Model not found")
+def train_nn():
+    st.write("Please train the model first")
+    if st.button("Train Model"):
+        st.switch_page("pages/train_network.py")
+
 def binary_cross_entropy(y, y_hat, epsilon=0.001):
     y = max(epsilon, min(1 - epsilon, y))
     return -y_hat * math.log(y) - (1 - y_hat) * math.log(1 - y)
 
-if "testDF" in st.session_state:
+if "nn" in st.session_state:
     nn = st.session_state.nn
     e = 0
     diff = 0
@@ -37,5 +43,7 @@ if "testDF" in st.session_state:
             diff += 1
     e /= len(st.session_state.testDF)
     st.write(f"Differences = {diff}/{i}\nBinary cross entropy: {e}")
+elif "testDF" in st.session_state:
+    train_nn()
 else:
     data_not_found()

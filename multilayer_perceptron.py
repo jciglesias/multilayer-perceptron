@@ -21,7 +21,8 @@ col1, col2 = st.columns(2)
 if col1.button("Upload Data", disabled=isData()):
     st.switch_page("pages/data_handler.py")
 if col2.button("Erase Data", disabled=not isData()):
-    os.system("rm data/*")
+    for key in st.session_state.keys():
+        del st.session_state[key]
 if col1.button("Train Model", disabled="nn" in st.session_state):
     st.switch_page("pages/train_network.py")
 if col1.button("Predict"):
