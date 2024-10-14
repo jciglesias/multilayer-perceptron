@@ -90,7 +90,7 @@ class NeuralNetwork:
                 },index=[epoch])
             if self.criteria_check(epoch, accuracy[-1], val_accuracy):
                 self.start_restart(self.input_size, self.hidden_size, len(self.layers))
-            if val_accuracy >= 0.9 and accuracy[-1] >= 0.9 and not (epoch+1) % 10:
+            if val_accuracy >= 0.9 and accuracy[-1] >= 0.9 and not (epoch+1) % 5:
                 break
         self.plot_metrics(epoch+1, losses, val_losses, accuracy, val_accuracies)
     
