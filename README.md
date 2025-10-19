@@ -19,7 +19,7 @@ plain Python and a few common scientific packages.
   - `multilayer_perceptron.py` - run the trained model on `data/test.csv` and print metrics
   - `neuralnetwork.py`, `neuron.py` - core network implementation
 
-## Quick summary / contract
+## Quick summary
 
 - Inputs: `data/data.csv` (rows: id, label, 30 numeric features)
 - Outputs: `data/training.csv`, `data/validation.csv`, `data/test.csv`, `model.pkl`, `metrics.png`
@@ -107,12 +107,6 @@ Notes:
   still writes `metrics.png`).
 - If you see `ModuleNotFoundError` for any package, install it via pip as
   shown in Requirements.
-
-## Next steps / Improvements
-
-- Add a `requirements.txt` or `pyproject.toml` for reproducible installs.
-- Replace custom training/backprop with a tested framework (PyTorch/TF)
-  if you need production-quality training/optimizers.
 
 ## License
 
